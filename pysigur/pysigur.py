@@ -311,18 +311,3 @@ class SigurAsyncClient(SigurAsyncInterface):
                 return accesspolicy_reply
         logging.error(SigurWrongModel(reply))
         return None
-
-
-if __name__ == "__main__":
-
-    async def main():
-        async with SigurAsyncClient(
-            "10.0.7.232", 3312, username="script", password="ANONYMOUS"
-        ) as sb:
-            reply = await sb.accesspolicy_request(
-                146,
-                key="9693208A",
-            )
-            logging.error(reply)
-
-    asyncio.run(main())
