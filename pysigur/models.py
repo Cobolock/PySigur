@@ -5,7 +5,7 @@ from collections import namedtuple
 from dataclasses import dataclass, field
 from enum import Enum
 
-from exceptions import SigurModelMismatch
+from .exceptions import SigurModelMismatch
 
 
 @dataclass

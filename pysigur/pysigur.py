@@ -2,8 +2,9 @@ import asyncio
 import logging
 from datetime import datetime
 
-import exceptions as ex
-from models import (
+from . import exceptions as ex
+from .errors import SigurWrongModel
+from .models import (
     AccessPolicyReplyEmp,
     AccessPolicyReplyNoEmp,
     APInfo,
@@ -16,8 +17,6 @@ from models import (
     W34Key,
     ZoneInfo,
 )
-
-from .errors import SigurWrongModel
 
 
 class SigurAsyncInterface:

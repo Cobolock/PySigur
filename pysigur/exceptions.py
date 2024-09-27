@@ -1,4 +1,4 @@
-from errors import SigurWrongModel
+from .errors import SigurWrongModel
 
 
 class SigurTimeoutException(Exception):
