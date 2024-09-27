@@ -40,6 +40,7 @@ class SigurExceptionModel(SigurResponse):
         `id`: Exception number
         `text`: Exception description
     """
+
     regex: str = "ERROR (?P<id>(.*?)) (?P<text>(.*?))"
     model: type = namedtuple("ERROR", "id, text")
 
@@ -53,6 +54,7 @@ class ObjectInfoEmp(SigurResponse):
         `position`: Employee's position
         `tabnumber`: Employee's table number
     """
+
     prefix: str = "EMP"
     regex: str = (
         f'{prefix} ID (?P<id>(.*?)) NAME "(?P<name>(.*))" '
@@ -78,6 +80,7 @@ class ObjectInfoGuest(SigurResponse):
         `name`: Guest's full name
         `tabnumber`: Guest's table number
     """
+
     prefix: str = "GUESTBADGE"
     # regex MUST start with 'GUESTBADGE ID' despite the 'GUEST ID' in the documentation
     regex: str = (
@@ -104,6 +107,7 @@ class ObjectInfoCar(SigurResponse):
         `car_model`: Car model
         `tabnumber`: Car table number
     """
+
     prefix: str = "CAR"
     # regex MUST have two spaces before 'MODEL' despite the documentation
     regex: str = (
@@ -129,6 +133,7 @@ class ZoneInfo(SigurResponse):
         `id`: Zone ID
         `name`: Zone name
     """
+
     regex: str = 'ID (?P<id>(.*?)) NAME "(?P<name>(.*))"'
     model: type = namedtuple("ZONEINFO", "id, name")
 
@@ -161,6 +166,7 @@ class APInfo(SigurResponse):
         `state_adm`: Administrative state, normal|locked|unlocked
         `state_phys`: Physical state, online|offline
     """
+
     regex: str = (
         'APINFO ID (?P<id>(.*?)) NAME "(?P<name>(.*))" ZONEA (?P<zonea>(.*?)) '
         "ZONEB (?P<zoneb>(.*?)) STATE (?P<state_adm>(.*?)) (?P<state_phys>(.*))"
@@ -187,6 +193,7 @@ class W26Key(SigurResponse):
         `key_b`: 1-5 digits
     Keys must be zero-padded from left if used in OIF, and separated with a space symbol.
     """
+
     regex: str = "(?P<key_a>(\\d{1,3})),(?P<key_b>(\\d{1,5}))"
     model: type = namedtuple("W26KEY", "key_a, key_b")
 
@@ -200,6 +207,7 @@ class W34Key(SigurResponse):
     `W34Key.data`:
         `key`: 8 HEX digits
     """
+
     regex: str = "(?P<key>(([ABCDEF]|[0-9]){8}))"
     model: type = namedtuple("W34KEY", "key")
 
@@ -211,6 +219,7 @@ class AccessPolicyReplyResults(Enum):
     """
     These are the same as DELEGATION_REQUEST reply codes
     """
+
     CODE_1 = "Срок действия идентификатора истёк"
     CODE_2 = "Система не может сейчас решить, что делать"
     CODE_3 = "Идентификатор не известен системе"
@@ -219,6 +228,7 @@ class AccessPolicyReplyResults(Enum):
     CODE_6 = "Активный режим запрещает (по времени)"
     CODE_7 = "Пресечена попытка повторного прохода (antipassback)"
     CODE_255 = "Разрешить доступ"
+
 
 @dataclass
 class AccessPolicyReplyEmp(SigurResponse):
@@ -233,11 +243,14 @@ class AccessPolicyReplyEmp(SigurResponse):
 
     What is `MASKVERPOLICY_OFF`? Unbeknownst, not mentioned in the documentation.
     """
+
     regex: str = "ACCESSPOLICY_REPLY RESULT (?P<result_id>(\\d{1,3})) EMPID (?P<emp_id>(\\d{1,5})) MASKVERPOLICY_OFF"
     model: type = namedtuple("ACCESSPOLISY_REPLY", "result_id, emp_id")
 
     def __str__(self) -> str:
         return f"Сотрудник {self.data.emp_id}, ответ - {AccessPolicyReplyResults["CODE_"+self.data.result_id].value}"
+
+
 @dataclass
 class AccessPolicyReplyNoEmp(SigurResponse):
     """
@@ -246,6 +259,7 @@ class AccessPolicyReplyNoEmp(SigurResponse):
 
     This is for when the provided key can not be associated with an employee
     """
+
     regex: str = "ACCESSPOLICY_REPLY RESULT (?P<result_id>(\\d{1,3})) MASKVERPOLICY_OFF"
     model: type = namedtuple("ACCESSPOLISY_REPLY", "result_id")
 

@@ -1,13 +1,12 @@
 import asyncio
-from datetime import datetime
 import logging
+from datetime import datetime
 
-from .errors import SigurWrongModel
 import exceptions as ex
 from models import (
-    APInfo,
     AccessPolicyReplyEmp,
     AccessPolicyReplyNoEmp,
+    APInfo,
     ObjectInfoCar,
     ObjectInfoEmp,
     ObjectInfoGuest,
@@ -17,6 +16,8 @@ from models import (
     W34Key,
     ZoneInfo,
 )
+
+from .errors import SigurWrongModel
 
 
 class SigurAsyncInterface:
@@ -90,7 +91,7 @@ class SigurAsyncInterface:
                 result += data
                 break
             except asyncio.exceptions.LimitOverrunError as e:
-                data: bytes = await self._reader.readexactly(e.consumed)    # type: ignore[no-redef]
+                data: bytes = await self._reader.readexactly(e.consumed)  # type: ignore[no-redef]
                 result += data
             except TimeoutError:
                 raise self.exceptions.SigurTimeoutException
@@ -279,7 +280,7 @@ class SigurAsyncClient(SigurAsyncInterface):
                 key = W26Key(key)
             except self.exceptions.SigurModelMismatch:
                 try:
-                    key = W34Key(key.upper())   # type: ignore[union-attr]
+                    key = W34Key(key.upper())  # type: ignore[union-attr]
                 except self.exceptions.SigurModelMismatch:
                     key = None
         if key:
@@ -292,7 +293,9 @@ class SigurAsyncClient(SigurAsyncInterface):
             try:
                 date_time = datetime.strptime(date_time, self._date_format)
             except ValueError:
-                logging.error(f"`date_time` value `{date_time}` does not comply with the format '%Y-%m-%d %H:%M:%S', `datetime.now()` used instead.")
+                logging.error(
+                    f"`date_time` value `{date_time}` does not comply with the format '%Y-%m-%d %H:%M:%S', `datetime.now()` used instead."
+                )
                 date_time = datetime.now()
 
         query = (
@@ -313,10 +316,12 @@ class SigurAsyncClient(SigurAsyncInterface):
 if __name__ == "__main__":
 
     async def main():
-        async with SigurAsyncClient("10.0.7.232", 3312, username="script", password="ANONYMOUS") as sb:
+        async with SigurAsyncClient(
+            "10.0.7.232", 3312, username="script", password="ANONYMOUS"
+        ) as sb:
             reply = await sb.accesspolicy_request(
                 146,
-                key='9693208A',
+                key="9693208A",
             )
             logging.error(reply)
 
