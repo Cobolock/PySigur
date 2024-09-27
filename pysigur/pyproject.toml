@@ -1,0 +1,13 @@
+[project]
+name = "pysigur"
+version = "0.1.0"
+description = "Python implementation for Sigur Access Control System TCP API"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = []
+
+[tool.uv]
+dev-dependencies = [
+    "mypy>=1.11.2",
+    "ruff>=0.6.8",
+]
