@@ -1,9 +1,22 @@
 [project]
 name = "pysigur"
 version = "0.1.0"
-description = "Python implementation for Sigur Access Control System TCP API"
+description = "Python asynchronous implementation for Sigur Access Control System TCP API"
 readme = "README.md"
 requires-python = ">=3.12"
+authors = [
+  { name="Viktor Egorov", email="noonehasacat@gmail.com" },
+]
+readme = "README.md"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: GNU License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+Homepage = "https://github.com/cobolock/pysigur"
+Issues = "https://github.com/cobolock/pysigur/issues"
 dependencies = []
 
 [tool.uv]

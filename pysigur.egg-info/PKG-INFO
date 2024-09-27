@@ -1,0 +1,10 @@
+Metadata-Version: 2.1
+Name: pysigur
+Version: 0.1.0
+Summary: Python implementation for Sigur Access Control System TCP API
+Requires-Python: >=3.12
+Description-Content-Type: text/markdown
+License-File: LICENSE
+
+# PySigur
+Python 3 API for Sigur OIF
