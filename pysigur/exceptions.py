@@ -1,18 +1,20 @@
-from .errors import SigurWrongModel
+class SigurBaseException(BaseException):
+    pass
 
 
-class SigurTimeoutException(Exception):
+class SigurTimeoutException(SigurBaseException):
     def __init__(self) -> None:
         self.message = "Query was cancelled due to timeout. Try increasing timeout limit for longer queries."
         super().__init__(self.message)
 
 
-class SigurModelMismatch(BaseException):
+class SigurModelMismatch(SigurBaseException):
     def __init__(self, *args) -> None:
-        super().__init__(SigurWrongModel(*args))
+        self.message = "Incorrect model."
+        super().__init__(self.message, ", ".join(args))
 
 
-class SigurException(BaseException):
+class SigurException(SigurBaseException):
     def __init__(self, errno: str) -> None:
         ex = {
             "1": E_1_UNABLE_TO_CONNECT_TO_DB,
@@ -48,88 +50,117 @@ class SigurException(BaseException):
         raise ex
 
 
-class E_1_UNABLE_TO_CONNECT_TO_DB(BaseException): ...
+class E_1_UNABLE_TO_CONNECT_TO_DB(SigurBaseException):
+    pass
 
 
-class E_2_UNKNOWN_COMMAND(BaseException): ...
+class E_2_UNKNOWN_COMMAND(SigurBaseException):
+    pass
 
 
-class E_3_UNSUPPORTED_INTERFACE_VERSION(BaseException): ...
+class E_3_UNSUPPORTED_INTERFACE_VERSION(SigurBaseException):
+    pass
 
 
-class E_4_NOT_LOGGED_IN(BaseException): ...
+class E_4_NOT_LOGGED_IN(SigurBaseException):
+    pass
 
 
-class E_5_GENERIC_SQL_ERROR(BaseException): ...
+class E_5_GENERIC_SQL_ERROR(SigurBaseException):
+    pass
 
 
-class E_6_SYNTAX_ERROR(BaseException): ...
+class E_6_SYNTAX_ERROR(SigurBaseException):
+    pass
 
 
-class E_7_UNKNOWN_OBJECT(BaseException): ...
+class E_7_UNKNOWN_OBJECT(SigurBaseException):
+    pass
 
 
-class E_8_INTERNAL_ERROR(BaseException): ...
+class E_8_INTERNAL_ERROR(SigurBaseException):
+    pass
 
 
-class E_9_CONCURRENT_TRANSACTION_IS_IN_PROGRESS(BaseException): ...
+class E_9_CONCURRENT_TRANSACTION_IS_IN_PROGRESS(SigurBaseException):
+    pass
 
 
-class E_10_UNKNOWN_ACCESS_POINT(BaseException): ...
+class E_10_UNKNOWN_ACCESS_POINT(SigurBaseException):
+    pass
 
 
-class E_11_AUTHENTICATION_FAILED(BaseException): ...
+class E_11_AUTHENTICATION_FAILED(SigurBaseException):
+    pass
 
 
-class E_12_DELEGATION_IS_DISABLED(BaseException): ...
+class E_12_DELEGATION_IS_DISABLED(SigurBaseException):
+    pass
 
 
-class E_13_DELEGATION_IS_NOT_ACTIVE(BaseException): ...
+class E_13_DELEGATION_IS_NOT_ACTIVE(SigurBaseException):
+    pass
 
 
-class E_14_NOT_SUBSCRIBED(BaseException): ...
+class E_14_NOT_SUBSCRIBED(SigurBaseException):
+    pass
 
 
-class E_15_ALREADY_SUBSCRIBED(BaseException): ...
+class E_15_ALREADY_SUBSCRIBED(SigurBaseException):
+    pass
 
 
-class E_16_SPECIFIED_KEY_ALREADY_IN_USE(BaseException): ...
+class E_16_SPECIFIED_KEY_ALREADY_IN_USE(SigurBaseException):
+    pass
 
 
-class E_17_SPECIFIED_RULE_DOESNT_EXIST(BaseException): ...
+class E_17_SPECIFIED_RULE_DOESNT_EXIST(SigurBaseException):
+    pass
 
 
-class E_18_SPECIFIED_KEY_DOESNT_EXIST(BaseException): ...
+class E_18_SPECIFIED_KEY_DOESNT_EXIST(SigurBaseException):
+    pass
 
 
-class E_19_UNKNOWN_VIDEO_CHANNEL(BaseException): ...
+class E_19_UNKNOWN_VIDEO_CHANNEL(SigurBaseException):
+    pass
 
 
-class E_20_UNKNOWN_ALARM_LINE(BaseException): ...
+class E_20_UNKNOWN_ALARM_LINE(SigurBaseException):
+    pass
 
 
-class E_21_OIF_ACCESS_IS_DISABLED_FOR_THIS_USER(BaseException): ...
+class E_21_OIF_ACCESS_IS_DISABLED_FOR_THIS_USER(SigurBaseException):
+    pass
 
 
-class E_22_VIDEO_IS_NOT_AVAILABLE(BaseException): ...
+class E_22_VIDEO_IS_NOT_AVAILABLE(SigurBaseException):
+    pass
 
 
-class E_23_STREAM_IS_NOT_OPENED(BaseException): ...
+class E_23_STREAM_IS_NOT_OPENED(SigurBaseException):
+    pass
 
 
-class E_24_FACE_RECOGNITION_IS_OFF(BaseException): ...
+class E_24_FACE_RECOGNITION_IS_OFF(SigurBaseException):
+    pass
 
 
-class E_25_ACCESS_POLICY_ERROR(BaseException): ...
+class E_25_ACCESS_POLICY_ERROR(SigurBaseException):
+    pass
 
 
-class E_26_TIMED_OUT(BaseException): ...
+class E_26_TIMED_OUT(SigurBaseException):
+    pass
 
 
-class E_27_SOCKET_BIND_FAILED(BaseException): ...
+class E_27_SOCKET_BIND_FAILED(SigurBaseException):
+    pass
 
 
-class E_28_UNKNOWN_ERROR(BaseException): ...
+class E_28_UNKNOWN_ERROR(SigurBaseException):
+    pass
 
 
-class E_29_EXTMEM_ERROR(BaseException): ...
+class E_29_EXTMEM_ERROR(SigurBaseException):
+    pass

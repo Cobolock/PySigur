@@ -2,8 +2,7 @@ import asyncio
 import logging
 from datetime import datetime
 
-from . import exceptions as ex
-from .errors import SigurWrongModel
+from . import exceptions
 from .models import (
     AccessPolicyReplyEmp,
     AccessPolicyReplyNoEmp,
@@ -32,8 +31,6 @@ class SigurAsyncInterface:
         self._EOLbytes: bytes = b"\r\n"
         self._read_timeout: int = 3
         self._buffer_limit: int = 65536
-
-        self.exceptions = ex
 
     async def open_connection(self) -> None:
         self._reader, self._writer = await asyncio.open_connection(
@@ -74,7 +71,7 @@ class SigurAsyncInterface:
         data = await self.read_utf8()
         if data.startswith("ERROR"):
             error = SigurExceptionModel(data)
-            raise self.exceptions.SigurException(error.data.id)
+            raise exceptions.SigurException(error.data.id)
         return data
 
     async def readline(self) -> bytes:
@@ -93,7 +90,7 @@ class SigurAsyncInterface:
                 data: bytes = await self._reader.readexactly(e.consumed)  # type: ignore[no-redef]
                 result += data
             except TimeoutError:
-                raise self.exceptions.SigurTimeoutException
+                raise exceptions.SigurTimeoutException
         return result
 
     async def read_utf8(self) -> str:
@@ -175,7 +172,7 @@ class SigurAsyncClient(SigurAsyncInterface):
         reply_modified = reply.removeprefix("OBJECTINFO ")
         if obj := self._match_object_info(reply_modified):
             return obj
-        logging.error(SigurWrongModel(reply))
+        logging.error(exceptions.SigurModelMismatch(reply))
         return None
 
     async def get_object_info_all(self) -> list[SigurResponse] | None:
@@ -195,7 +192,7 @@ class SigurAsyncClient(SigurAsyncInterface):
             if obj := self._match_object_info(object_item):
                 objects.append(obj)
             else:
-                logging.error(SigurWrongModel(object_item))
+                logging.error(exceptions.SigurModelMismatch(object_item))
         return objects
 
     async def get_zone_info(self) -> list[ZoneInfo] | None:
@@ -209,7 +206,7 @@ class SigurAsyncClient(SigurAsyncInterface):
             if zone := ZoneInfo(zone_item):
                 zones.append(zone)
             else:
-                logging.error(SigurWrongModel(zone_item))
+                logging.error(exceptions.SigurModelMismatch(zone_item))
         return zones
 
     async def get_ap_info(self, ap_id: str | int) -> APInfo | None:
@@ -218,7 +215,7 @@ class SigurAsyncClient(SigurAsyncInterface):
             return None
         if ap := APInfo(reply):
             return ap
-        logging.error(SigurWrongModel(reply))
+        logging.error(exceptions.SigurModelMismatch(reply))
         return None
 
     async def get_ap_list(self) -> dict[int, APInfo] | None:
@@ -239,7 +236,7 @@ class SigurAsyncClient(SigurAsyncInterface):
             if ap := await self.get_ap_info(ap_id):
                 ap_list[int(ap_id)] = ap
             else:
-                logging.error(SigurWrongModel("AP#" + ap_id))
+                logging.error(exceptions.SigurModelMismatch("AP#" + ap_id))
         return ap_list
 
     async def accesspolicy_request(
@@ -308,5 +305,5 @@ class SigurAsyncClient(SigurAsyncInterface):
         except self.exceptions.SigurModelMismatch:
             if accesspolicy_reply := AccessPolicyReplyNoEmp(reply):
                 return accesspolicy_reply
-        logging.error(SigurWrongModel(reply))
+        logging.error(exceptions.SigurModelMismatch(reply))
         return None
