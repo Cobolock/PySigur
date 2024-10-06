@@ -49,7 +49,7 @@ class SigurExceptionModel(SigurResponse):
         id: int = 0
         text: str = ""
 
-    _regex: str = "ERROR (?P<id>(.*?)) (?P<text>(.*?))"
+    _regex: re.Pattern = re.compile("ERROR (?P<id>(.*?)) (?P<text>(.*?))")
     _model: type = Model
     data: Model = field(default_factory=Model)
 
@@ -65,7 +65,7 @@ class SigurOK(SigurResponse):
     class Model:
         ok: str = ""
 
-    _regex: str = "(?P<ok>(OK))"
+    _regex: re.Pattern = re.compile("(?P<ok>(OK))")
     _model: type = Model
     data: Model = field(default_factory=Model)
 
@@ -87,7 +87,7 @@ class ObjectInfoEmp(SigurResponse):
         position: str = ""
         tabnumber: str = ""
 
-    _regex: str = (
+    _regex: re.Pattern = re.compile(
         'EMP ID (?P<id>(.*?)) NAME "(?P<name>(.*))" '
         'POSITION "(?P<position>(.*))" TABNUMBER "(?P<tabnumber>(.*?))"'
     )
@@ -120,7 +120,7 @@ class ObjectInfoGuest(SigurResponse):
         tabnumber: str = ""
 
     # _regex MUST start with 'GUESTBADGE ID' despite the 'GUEST ID' in the documentation
-    _regex: str = (
+    _regex: re.Pattern = re.compile(
         'GUESTBADGE ID (?P<id>(.*?)) NAME "(?P<name>(.*))" '
         'TABNUMBER "(?P<tabnumber>(.*?))"'
     )
@@ -154,7 +154,7 @@ class ObjectInfoCar(SigurResponse):
         tabnumber: str = ""
 
     # _regex MUST have two spaces before 'MODEL' despite the documentation
-    _regex: str = (
+    _regex: re.Pattern = re.compile(
         'CAR ID (?P<id>(.*?)) NUMBER "(?P<car_number>(.*))"  '
         'MODEL "(?P<car_model>(.*?))" TABNUMBER "(?P<tabnumber>(.*?))"'
     )
@@ -184,7 +184,7 @@ class ZoneInfo(SigurResponse):
         id: int = 0
         name: str = ""
 
-    _regex: str = 'ID (?P<id>(.*?)) NAME "(?P<name>(.*))"'
+    _regex: re.Pattern = re.compile('ID (?P<id>(.*?)) NAME "(?P<name>(.*))"')
     _model: type = Model
     data: Model = field(default_factory=Model)
 
@@ -228,7 +228,7 @@ class APInfo(SigurResponse):
         state_phys: str = ""
 
     _model: type = Model
-    _regex: str = (
+    _regex: re.Pattern = re.compile(
         'APINFO ID (?P<id>(.*?)) NAME "(?P<name>(.*))" ZONEA (?P<zonea>(.*?)) '
         "ZONEB (?P<zoneb>(.*?)) STATE (?P<state_adm>(.*?)) (?P<state_phys>(.*))"
     )
@@ -260,7 +260,7 @@ class W26Key(SigurResponse):
         key_a: str = ""
         key_b: str = ""
 
-    _regex: str = "(?P<key_a>(\\d{1,3})),(?P<key_b>(\\d{1,5}))"
+    _regex: re.Pattern = re.compile("(?P<key_a>(\\d{1,3})),(?P<key_b>(\\d{1,5}))")
     _model: type = Model
     data: Model = field(default_factory=Model)
 
@@ -279,7 +279,7 @@ class W34Key(SigurResponse):
     class Model:
         key: str = ""
 
-    _regex: str = "(?P<key>(([ABCDEF]|[0-9]){8}))"
+    _regex: re.Pattern = re.compile("(?P<key>(([ABCDEF]|[0-9]){8}))")
     _model: type = Model
     data: Model = field(default_factory=Model)
 
@@ -321,7 +321,7 @@ class AccessPolicyReplyEmp(SigurResponse):
         result_id: int = 0
         emp_id: int = 0
 
-    _regex: str = "ACCESSPOLICY_REPLY RESULT (?P<result_id>(\\d{1,3})) EMPID (?P<emp_id>(\\d{1,5})) MASKVERPOLICY_OFF"
+    _regex: re.Pattern = re.compile("ACCESSPOLICY_REPLY RESULT (?P<result_id>(\\d{1,3})) EMPID (?P<emp_id>(\\d{1,5})) MASKVERPOLICY_OFF")
     _model: type = Model
     data: Model = field(default_factory=Model)
 
@@ -342,7 +342,7 @@ class AccessPolicyReplyNoEmp(SigurResponse):
     class Model:
         result_id: int = 0
 
-    _regex: str = (
+    _regex: re.Pattern = re.compile(
         "ACCESSPOLICY_REPLY RESULT (?P<result_id>(\\d{1,3})) MASKVERPOLICY_OFF"
     )
     _model: type = Model
