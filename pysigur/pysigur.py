@@ -18,12 +18,16 @@ from .models import (
 )
 
 
-class SigurAsyncInterface:
+class SigurAsyncService:
     """
     Asynchronous interface for client to Sigur Integrational Interface OIF.
     """
 
-    def __init__(self, host: str, port: int = 3312) -> None:
+    def __init__(
+        self,
+        host: str,
+        port: int = 3312,
+    ) -> None:
         self._host: str = host
         self._port: int = port
 
@@ -40,15 +44,6 @@ class SigurAsyncInterface:
     async def close_connection(self) -> None:
         self._writer.close()
         await self._writer.wait_closed()
-
-    async def __aenter__(self):
-        await self.open_connection()
-        if not await self.login():
-            return None
-        return self
-
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        await self.close_connection()
 
     async def request(self, query: str, expected_reply="") -> bool:
         """
@@ -101,7 +96,7 @@ class SigurAsyncInterface:
         return line_bytes.decode("utf-8").removesuffix(self._EOL)
 
 
-class SigurAsyncClient(SigurAsyncInterface):
+class SigurAsyncClient:
     """
     Asynchronous client to Sigur Integrational Interface OIF.
 
@@ -119,16 +114,25 @@ class SigurAsyncClient(SigurAsyncInterface):
         username: str = "sys",
         password: str = "",
     ) -> None:
-        super().__init__(host, port)
         self._username: str = username
         self._password: str = password
 
         self._version: str = "1.8"
         self._date_format: str = "%Y-%m-%d %H:%M:%S"
+        self.service = SigurAsyncService(host=host, port=port)
         self.OK = "OK"
 
+    async def __aenter__(self):
+        await self.service.open_connection()
+        if not await self.login():
+            return None
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        await self.service.close_connection()
+
     async def login(self) -> bool:
-        return await self.request(
+        return await self.service.request(
             f"LOGIN {self._version} {self._username} {self._password}", self.OK
         )
 
@@ -136,14 +140,14 @@ class SigurAsyncClient(SigurAsyncInterface):
         """
         Redundant, one can simply close connection
         """
-        await self.query("QUIT")
-        await self.close_connection()
+        await self.service.query("QUIT")
+        await self.service.close_connection()
 
     async def exit(self) -> None:
         """
         Alias for the redundant `quit()` method
         """
-        await self.quit()
+        await self.service.quit()
 
     def _match_object_info(self, string: str) -> SigurResponse | None:
         """
@@ -166,7 +170,7 @@ class SigurAsyncClient(SigurAsyncInterface):
         return None
 
     async def get_object_info(self, object_id: str | int) -> SigurResponse | None:
-        reply = await self.query(f"GETOBJECTINFO OBJECTID {object_id}")
+        reply = await self.service.query(f"GETOBJECTINFO OBJECTID {object_id}")
         if reply == "OBJECTINFO" or not reply.startswith("OBJECTINFO"):
             return None
         reply_modified = reply.removeprefix("OBJECTINFO ")
@@ -176,7 +180,7 @@ class SigurAsyncClient(SigurAsyncInterface):
         return None
 
     async def get_object_info_all(self) -> list[SigurResponse] | None:
-        reply = await self.query("GETOBJECTINFO ALL")
+        reply = await self.service.query("GETOBJECTINFO ALL")
         if reply == "OBJECTINFO" or not reply.startswith("OBJECTINFO"):
             return None
         # here's how we fight against commas in names and positions
@@ -196,7 +200,7 @@ class SigurAsyncClient(SigurAsyncInterface):
         return objects
 
     async def get_zone_info(self) -> list[ZoneInfo] | None:
-        reply = await self.query("GETZONEINFO")
+        reply = await self.service.query("GETZONEINFO")
         if reply == "ZONEINFO" or not reply.startswith("ZONEINFO"):
             return None
         reply_modified = reply.removeprefix("ZONEINFO ")
@@ -210,7 +214,7 @@ class SigurAsyncClient(SigurAsyncInterface):
         return zones
 
     async def get_ap_info(self, ap_id: str | int) -> APInfo | None:
-        reply = await self.query(f"GETAPINFO {ap_id}")
+        reply = await self.service.query(f"GETAPINFO {ap_id}")
         if reply == "APINFO" or not reply.startswith("APINFO"):
             return None
         if ap := APInfo(reply):
@@ -226,7 +230,7 @@ class SigurAsyncClient(SigurAsyncInterface):
 
         Returns a `dict{ap_id: APInfo}`
         """
-        reply = await self.query("GETAPLIST")
+        reply = await self.service.query("GETAPLIST")
         if reply == "APLIST EMPTY" or not reply.startswith("APLIST"):
             return None
         reply_modified = reply.removeprefix("APLIST ")
@@ -274,10 +278,10 @@ class SigurAsyncClient(SigurAsyncInterface):
         if key:
             try:
                 key = W26Key(key)
-            except self.exceptions.SigurModelMismatch:
+            except exceptions.SigurModelMismatch:
                 try:
                     key = W34Key(key.upper())  # type: ignore[union-attr]
-                except self.exceptions.SigurModelMismatch:
+                except exceptions.SigurModelMismatch:
                     key = None
         if key:
             query_object = f"KEY {str(key)}"
@@ -298,11 +302,11 @@ class SigurAsyncClient(SigurAsyncInterface):
             f'ACCESSPOLICY_REQUEST TYPE NORMAL TIME "{date_time.strftime(self._date_format)}" {query_object} '  # type: ignore[union-attr]
             f'DIRECTION {direction} APID {ap_id}{str(" " + str(extra_rules)) if extra_rules else ""}'
         )
-        reply = await self.query(query)
+        reply = await self.service.query(query)
         try:
             if accesspolicy_reply := AccessPolicyReplyEmp(reply):
                 return accesspolicy_reply
-        except self.exceptions.SigurModelMismatch:
+        except exceptions.SigurModelMismatch:
             if accesspolicy_reply := AccessPolicyReplyNoEmp(reply):
                 return accesspolicy_reply
         logging.error(exceptions.SigurModelMismatch(reply))

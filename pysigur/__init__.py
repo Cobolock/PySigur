@@ -1,3 +1,3 @@
-__all__ = ["SigurAsyncClient"]
+__all__ = ["SigurAsyncClient", "exceptions"]
 
-from .pysigur import SigurAsyncClient
+from .pysigur import SigurAsyncClient, exceptions
