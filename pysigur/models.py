@@ -1,9 +1,8 @@
 import logging
 import re
 import traceback
-from collections import namedtuple
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import StrEnum
 
 from .exceptions import SigurModelMismatch
 
@@ -12,22 +11,26 @@ from .exceptions import SigurModelMismatch
 class SigurResponse:
     """Common class for OIF responses"""
 
-    raw_line: str
-    regex: str
-    model: type
-    data: namedtuple = field(init=False)
+    @dataclass
+    class Model:
+        pass
+
+    _raw_line: str
+    _regex: str
+    _model: type
+    data: Model = field(init=False)
 
     def __post_init__(self):
         self.parse()
 
-    def parse(self) -> namedtuple:
+    def parse(self) -> None:
         try:
-            m = re.search(self.regex, self.raw_line)
+            m = re.search(self._regex, self._raw_line)
             if not m:
-                raise SigurModelMismatch(self.__class__, self.raw_line)
-            self.data = self.model(**m.groupdict())
+                raise SigurModelMismatch(self.__class__, self._raw_line)
+            self.data = self._model(**m.groupdict())
         except (TypeError, AttributeError):
-            raise SigurModelMismatch(self.__class__, self.raw_line)
+            raise SigurModelMismatch(self.__class__, self._raw_line)
         except Exception:
             logging.error(traceback.format_exc())
             raise
@@ -41,8 +44,14 @@ class SigurExceptionModel(SigurResponse):
         `text`: Exception description
     """
 
-    regex: str = "ERROR (?P<id>(.*?)) (?P<text>(.*?))"
-    model: type = namedtuple("ERROR", "id, text")
+    @dataclass
+    class Model:
+        id: int = 0
+        text: str = ""
+
+    _regex: str = "ERROR (?P<id>(.*?)) (?P<text>(.*?))"
+    _model: type = Model
+    data: Model = field(default_factory=Model)
 
 
 @dataclass
@@ -52,8 +61,13 @@ class SigurOK(SigurResponse):
         `ok`: it's always "OK" in Sigur
     """
 
-    regex: str = "(?P<ok>(OK))"
-    model: type = namedtuple("OK", "ok")
+    @dataclass
+    class Model:
+        ok: str = ""
+
+    _regex: str = "(?P<ok>(OK))"
+    _model: type = Model
+    data: Model = field(default_factory=Model)
 
 
 @dataclass
@@ -66,12 +80,19 @@ class ObjectInfoEmp(SigurResponse):
         `tabnumber`: Employee's table number
     """
 
-    prefix: str = "EMP"
-    regex: str = (
-        f'{prefix} ID (?P<id>(.*?)) NAME "(?P<name>(.*))" '
+    @dataclass
+    class Model:
+        id: int = 0
+        name: str = ""
+        position: str = ""
+        tabnumber: str = ""
+
+    _regex: str = (
+        'EMP ID (?P<id>(.*?)) NAME "(?P<name>(.*))" '
         'POSITION "(?P<position>(.*))" TABNUMBER "(?P<tabnumber>(.*?))"'
     )
-    model: type = namedtuple("OBJECTINFO", "id, name, position, tabnumber")
+    _model: type = Model
+    data: Model = field(default_factory=Model)
 
     def __str__(self) -> str:
         return (
@@ -92,13 +113,19 @@ class ObjectInfoGuest(SigurResponse):
         `tabnumber`: Guest's table number
     """
 
-    prefix: str = "GUESTBADGE"
-    # regex MUST start with 'GUESTBADGE ID' despite the 'GUEST ID' in the documentation
-    regex: str = (
-        f'{prefix} ID (?P<id>(.*?)) NAME "(?P<name>(.*))" '
+    @dataclass
+    class Model:
+        id: int = 0
+        name: str = ""
+        tabnumber: str = ""
+
+    # _regex MUST start with 'GUESTBADGE ID' despite the 'GUEST ID' in the documentation
+    _regex: str = (
+        'GUESTBADGE ID (?P<id>(.*?)) NAME "(?P<name>(.*))" '
         'TABNUMBER "(?P<tabnumber>(.*?))"'
     )
-    model: type = namedtuple("OBJECTINFO", "id, name, tabnumber")
+    _model: type = Model
+    data: Model = field(default_factory=Model)
 
     def __str__(self) -> str:
         return (
@@ -115,17 +142,24 @@ class ObjectInfoCar(SigurResponse):
     `ObjectInfoCar.data`:
         `id`: Object ID
         `car_number`: Car number
-        `car_model`: Car model
+        `car__model`: Car _model
         `tabnumber`: Car table number
     """
 
-    prefix: str = "CAR"
-    # regex MUST have two spaces before 'MODEL' despite the documentation
-    regex: str = (
-        f'{prefix} ID (?P<id>(.*?)) NUMBER "(?P<car_number>(.*))"  '
+    @dataclass
+    class Model:
+        id: int = 0
+        car_number: str = ""
+        car_model: str = ""
+        tabnumber: str = ""
+
+    # _regex MUST have two spaces before 'MODEL' despite the documentation
+    _regex: str = (
+        'CAR ID (?P<id>(.*?)) NUMBER "(?P<car_number>(.*))"  '
         'MODEL "(?P<car_model>(.*?))" TABNUMBER "(?P<tabnumber>(.*?))"'
     )
-    model: type = namedtuple("OBJECTINFO", "id, car_number, car_model, tabnumber")
+    _model: type = Model
+    data: Model = field(default_factory=Model)
 
     def __str__(self) -> str:
         return (
@@ -145,8 +179,14 @@ class ZoneInfo(SigurResponse):
         `name`: Zone name
     """
 
-    regex: str = 'ID (?P<id>(.*?)) NAME "(?P<name>(.*))"'
-    model: type = namedtuple("ZONEINFO", "id, name")
+    @dataclass
+    class Model:
+        id: int = 0
+        name: str = ""
+
+    _regex: str = 'ID (?P<id>(.*?)) NAME "(?P<name>(.*))"'
+    _model: type = Model
+    data: Model = field(default_factory=Model)
 
     def __str__(self) -> str:
         return (
@@ -156,7 +196,7 @@ class ZoneInfo(SigurResponse):
         )
 
 
-class APStates(Enum):
+class APStates(StrEnum):
     OFFLINE = "Нет связи"
     ONLINE_NORMAL = "Нормальный режим"
     ONLINE_UNLOCKED = "Разблокирована"
@@ -178,11 +218,21 @@ class APInfo(SigurResponse):
         `state_phys`: Physical state, online|offline
     """
 
-    regex: str = (
+    @dataclass
+    class Model:
+        id: int = 0
+        name: str = ""
+        zonea: int = 0
+        zoneb: int = 0
+        state_adm: str = ""
+        state_phys: str = ""
+
+    _model: type = Model
+    _regex: str = (
         'APINFO ID (?P<id>(.*?)) NAME "(?P<name>(.*))" ZONEA (?P<zonea>(.*?)) '
         "ZONEB (?P<zoneb>(.*?)) STATE (?P<state_adm>(.*?)) (?P<state_phys>(.*))"
     )
-    model: type = namedtuple("APINFO", "id, name, zonea, zoneb, state_adm, state_phys")
+    data: Model = field(default_factory=Model)
 
     def __str__(self) -> str:
         return (
@@ -191,8 +241,8 @@ class APInfo(SigurResponse):
             f"Название: {self.data.name}\r\n\t"
             f"Зона выхода: {self.data.zonea}\r\n\t"
             f"Зона входа: {self.data.zoneb}\r\n\t"
-            f"Состояние: {APStates[self.data.state_adm].value}\r\n\t"
-            f"Состояние контроллера: {APStates[self.data.state_phys].value}\r\n\t"
+            f"Состояние: {APStates[self.data.state_adm]}\r\n\t"
+            f"Состояние контроллера: {APStates[self.data.state_phys]}\r\n\t"
         )
 
 
@@ -205,8 +255,14 @@ class W26Key(SigurResponse):
     Keys must be zero-padded from left if used in OIF, and separated with a space symbol.
     """
 
-    regex: str = "(?P<key_a>(\\d{1,3})),(?P<key_b>(\\d{1,5}))"
-    model: type = namedtuple("W26KEY", "key_a, key_b")
+    @dataclass
+    class Model:
+        key_a: str = ""
+        key_b: str = ""
+
+    _regex: str = "(?P<key_a>(\\d{1,3})),(?P<key_b>(\\d{1,5}))"
+    _model: type = Model
+    data: Model = field(default_factory=Model)
 
     def __str__(self) -> str:
         return f"W26 {self.data.key_a:03} {self.data.key_b:05}"
@@ -219,14 +275,19 @@ class W34Key(SigurResponse):
         `key`: 8 HEX digits
     """
 
-    regex: str = "(?P<key>(([ABCDEF]|[0-9]){8}))"
-    model: type = namedtuple("W34KEY", "key")
+    @dataclass
+    class Model:
+        key: str = ""
+
+    _regex: str = "(?P<key>(([ABCDEF]|[0-9]){8}))"
+    _model: type = Model
+    data: Model = field(default_factory=Model)
 
     def __str__(self) -> str:
         return f"W34 {self.data.key}"
 
 
-class AccessPolicyReplyResults(Enum):
+class AccessPolicyReplyResults(StrEnum):
     """
     These are the same as DELEGATION_REQUEST reply codes
     """
@@ -255,11 +316,17 @@ class AccessPolicyReplyEmp(SigurResponse):
     What is `MASKVERPOLICY_OFF`? Unbeknownst, not mentioned in the documentation.
     """
 
-    regex: str = "ACCESSPOLICY_REPLY RESULT (?P<result_id>(\\d{1,3})) EMPID (?P<emp_id>(\\d{1,5})) MASKVERPOLICY_OFF"
-    model: type = namedtuple("ACCESSPOLISY_REPLY", "result_id, emp_id")
+    @dataclass
+    class Model:
+        result_id: int = 0
+        emp_id: int = 0
+
+    _regex: str = "ACCESSPOLICY_REPLY RESULT (?P<result_id>(\\d{1,3})) EMPID (?P<emp_id>(\\d{1,5})) MASKVERPOLICY_OFF"
+    _model: type = Model
+    data: Model = field(default_factory=Model)
 
     def __str__(self) -> str:
-        return f"Сотрудник {self.data.emp_id}, ответ - {AccessPolicyReplyResults["CODE_"+self.data.result_id].value}"
+        return f"Сотрудник {self.data.emp_id}, ответ - {AccessPolicyReplyResults["CODE_"+str(self.data.result_id)]}"
 
 
 @dataclass
@@ -271,8 +338,15 @@ class AccessPolicyReplyNoEmp(SigurResponse):
     This is for when the provided key can not be associated with an employee
     """
 
-    regex: str = "ACCESSPOLICY_REPLY RESULT (?P<result_id>(\\d{1,3})) MASKVERPOLICY_OFF"
-    model: type = namedtuple("ACCESSPOLISY_REPLY", "result_id")
+    @dataclass
+    class Model:
+        result_id: int = 0
+
+    _regex: str = (
+        "ACCESSPOLICY_REPLY RESULT (?P<result_id>(\\d{1,3})) MASKVERPOLICY_OFF"
+    )
+    _model: type = Model
+    data: Model = field(default_factory=Model)
 
     def __str__(self) -> str:
-        return f"Ответ - {AccessPolicyReplyResults["CODE_"+self.data.result_id].value}"
+        return f"Ответ - {AccessPolicyReplyResults["CODE_"+str(self.data.result_id)]}"

@@ -56,7 +56,7 @@ class SigurAsyncService:
         data = await self.read_utf8()
         if data.startswith("ERROR"):
             error = SigurExceptionModel(data)
-            raise exceptions.SigurException(error.data.id)
+            raise exceptions.SigurException(str(error.data.id))
         return data
 
     async def readline(self) -> bytes:
@@ -123,9 +123,11 @@ class SigurAsyncClient:
 
     async def login(self) -> bool:
         try:
-            SigurOK(await self.service.query(
-            f"LOGIN {self._version} {self._username} {self._password}"
-        ))
+            SigurOK(
+                await self.service.query(
+                    f"LOGIN {self._version} {self._username} {self._password}"
+                )
+            )
         except exceptions.SigurModelMismatch as e:
             logging.error(e)
             return False
@@ -155,9 +157,9 @@ class SigurAsyncClient:
         Returns ObjectInfoEmp | ObjectInfoGuest | ObjectInfoCar | None
         """
         prefixes = {
-            ObjectInfoEmp.prefix: ObjectInfoEmp,
-            ObjectInfoGuest.prefix: ObjectInfoGuest,
-            ObjectInfoCar.prefix: ObjectInfoCar,
+            "EMP": ObjectInfoEmp,
+            "GUESTBADGE": ObjectInfoGuest,
+            "CAR": ObjectInfoCar,
         }
         for prefix, obj in prefixes.items():
             if string.startswith(prefix):
@@ -181,11 +183,11 @@ class SigurAsyncClient:
         # here's how we fight against commas in names and positions
         reply_modified = (
             reply.removeprefix("OBJECTINFO ")
-            .replace(f", {ObjectInfoEmp.prefix} ", f"_!_{ObjectInfoEmp.prefix} ")
-            .replace(f", {ObjectInfoGuest.prefix} ", f"_!_{ObjectInfoGuest.prefix} ")
-            .replace(f", {ObjectInfoCar.prefix} ", f"_!_{ObjectInfoCar.prefix} ")
+            .replace(", EMP ", ",,EMP ")
+            .replace(", GUESTBADGE ", ",,GUESTBADGE ")
+            .replace(", CAR ", ",,CAR ")
         )
-        replies_list = reply_modified.split("_!_")
+        replies_list = reply_modified.split(",,")
         objects = list()
         for object_item in replies_list:
             if obj := self._match_object_info(object_item):
@@ -242,22 +244,22 @@ class SigurAsyncClient:
         self,
         ap_id: str | int,
         object_id: str | int | None = None,
-        key: str | None = None,
+        key: W26Key | W34Key | None = None,
         lpnumber: str | None = None,
-        date_time: str | datetime = datetime.now(),
+        date_time: datetime | None = None,
         direction: str = "X",
         extra_rules: dict | None = None,
-    ) -> AccessPolicyReplyEmp | None:
+    ) -> AccessPolicyReplyEmp | AccessPolicyReplyNoEmp | None:
         """
         Requests the server if a user can pass through an access point.
 
-        `ap_id`: required.
+        `ap_id`: required, Access Point ID.
 
         `object_id`, `key`, `lpnumber`: optional, but must provide one of these.
 
             `object_id`: person's ID.
 
-            `key`: `AABBCCDD` for W34 or `111,22222` for W26.
+            `key`: instance of models.W26Key or models.W34Key.
 
             `lpnumber`: car number, maybe? Documentation tells nothing.
 
@@ -267,31 +269,21 @@ class SigurAsyncClient:
 
         `extra_rules`: optional; a `dict` with some extra arguments. Look them up in the OIF document.
         """
+        if not (lpnumber or key or object_id):
+            logging.error(exceptions.E_7_UNKNOWN_OBJECT)
+            return None
+
         query_object = str()
         if lpnumber:
             query_object = f"LPNUMBER {str(lpnumber)}"
         if key:
-            try:
-                key = W26Key(key)
-            except exceptions.SigurModelMismatch:
-                try:
-                    key = W34Key(key.upper())  # type: ignore[union-attr]
-                except exceptions.SigurModelMismatch:
-                    key = None
-        if key:
             query_object = f"KEY {str(key)}"
         if object_id:
             query_object = f"EMPID {str(object_id)}"
+        if not date_time:
+            date_time = datetime.now()
         if direction not in ["IN", "OUT", "X"]:
             direction = "X"
-        if type(date_time) is str:
-            try:
-                date_time = datetime.strptime(date_time, self._date_format)
-            except ValueError:
-                logging.error(
-                    f"`date_time` value `{date_time}` does not comply with the format '%Y-%m-%d %H:%M:%S', `datetime.now()` used instead."
-                )
-                date_time = datetime.now()
 
         query = (
             f'ACCESSPOLICY_REQUEST TYPE NORMAL TIME "{date_time.strftime(self._date_format)}" {query_object} '  # type: ignore[union-attr]
@@ -302,7 +294,78 @@ class SigurAsyncClient:
             if accesspolicy_reply := AccessPolicyReplyEmp(reply):
                 return accesspolicy_reply
         except exceptions.SigurModelMismatch:
-            if accesspolicy_reply := AccessPolicyReplyNoEmp(reply):
-                return accesspolicy_reply
+            if accesspolicy_reply_noemp := AccessPolicyReplyNoEmp(reply):
+                return accesspolicy_reply_noemp
         logging.error(exceptions.SigurModelMismatch(reply))
         return None
+
+    async def accesspolicy_request_obj(
+        self,
+        ap_id: str | int,
+        object_id: str | int,
+        date_time: datetime | None = None,
+        extra_rules: dict | None = None,
+    ) -> AccessPolicyReplyEmp | AccessPolicyReplyNoEmp | None:
+        """
+        Simplified alias for `accesspolicy_request` method for Wiegand26 formatted keys.
+
+        `ap_id`: required, Access Point ID.
+
+        `object_id`: person's ID.
+
+        `date_time`: optional; the time when a user is allowed to pass through. Defaults to `datetime.now()`. Datetime format is "%Y-%m-%d %H:%M:%S".
+
+        `extra_rules`: optional; a `dict` with some extra arguments. Look them up in the OIF document.
+        """
+        return await self.accesspolicy_request(
+            ap_id=ap_id,
+            object_id=str(object_id),
+            date_time=date_time,
+            extra_rules=extra_rules,
+        )
+
+    async def accesspolicy_request_w26(
+        self,
+        ap_id: str | int,
+        key: str,
+        date_time: datetime | None = None,
+        extra_rules: dict | None = None,
+    ) -> AccessPolicyReplyEmp | AccessPolicyReplyNoEmp | None:
+        """
+        Simplified alias for `accesspolicy_request` method for Wiegand26 formatted keys.
+
+        `ap_id`: required, Access Point ID.
+
+        `key`: Wiegand26 string format `xxx,yyyyy`
+
+        `date_time`: optional; the time when a user is allowed to pass through. Defaults to `datetime.now()`. Datetime format is "%Y-%m-%d %H:%M:%S".
+
+        `extra_rules`: optional; a `dict` with some extra arguments. Look them up in the OIF document.
+        """
+        w26_key = W26Key(key)
+        return await self.accesspolicy_request(
+            ap_id=ap_id, key=w26_key, date_time=date_time, extra_rules=extra_rules
+        )
+
+    async def accesspolicy_request_w34(
+        self,
+        ap_id: str | int,
+        key: str,
+        date_time: datetime | None = None,
+        extra_rules: dict | None = None,
+    ) -> AccessPolicyReplyEmp | AccessPolicyReplyNoEmp | None:
+        """
+        Simplified alias for `accesspolicy_request` method for Wiegand34 formatted keys.
+
+        `ap_id`: required, Access Point ID.
+
+        `key`: Wiegand26 string format `FFFFFF`
+
+        `date_time`: optional; the time when a user is allowed to pass through. Defaults to `datetime.now()`. Datetime format is "%Y-%m-%d %H:%M:%S".
+
+        `extra_rules`: optional; a `dict` with some extra arguments. Look them up in the OIF document.
+        """
+        w34_key = W34Key(key)
+        return await self.accesspolicy_request(
+            ap_id=ap_id, key=w34_key, date_time=date_time, extra_rules=extra_rules
+        )

@@ -11,7 +11,7 @@ class SigurTimeoutException(SigurBaseException):
 class SigurModelMismatch(SigurBaseException):
     def __init__(self, *args) -> None:
         self.message = "Incorrect model."
-        super().__init__(self.message, ", ".join(args))
+        super().__init__(self.message, ", ".join([str(arg) for arg in args]))
 
 
 class SigurException(SigurBaseException):
