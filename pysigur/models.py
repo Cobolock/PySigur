@@ -16,7 +16,7 @@ class SigurResponse:
         pass
 
     _raw_line: str
-    _regex: str
+    _regex: re.Pattern
     _model: type
     data: Model = field(init=False)
 
