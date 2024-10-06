@@ -11,6 +11,7 @@ from .models import (
     ObjectInfoEmp,
     ObjectInfoGuest,
     SigurExceptionModel,
+    SigurOK,
     SigurResponse,
     W26Key,
     W34Key,
@@ -44,17 +45,6 @@ class SigurAsyncService:
     async def close_connection(self) -> None:
         self._writer.close()
         await self._writer.wait_closed()
-
-    async def request(self, query: str, expected_reply="") -> bool:
-        """
-        Request is a query that expects a reply, most commonly 'OK',
-
-        which is conveniently predefined as the 'OK' parameter of the Client class.
-
-        Client's 'login' method is a request.
-        """
-        data = await self.query(query)
-        return data == expected_reply
 
     async def query(self, query: str) -> str:
         """
@@ -132,9 +122,14 @@ class SigurAsyncClient:
         await self.service.close_connection()
 
     async def login(self) -> bool:
-        return await self.service.request(
-            f"LOGIN {self._version} {self._username} {self._password}", self.OK
-        )
+        try:
+            SigurOK(await self.service.query(
+            f"LOGIN {self._version} {self._username} {self._password}"
+        ))
+        except exceptions.SigurModelMismatch as e:
+            logging.error(e)
+            return False
+        return True
 
     async def quit(self) -> None:
         """
@@ -147,7 +142,7 @@ class SigurAsyncClient:
         """
         Alias for the redundant `quit()` method
         """
-        await self.service.quit()
+        await self.quit()
 
     def _match_object_info(self, string: str) -> SigurResponse | None:
         """

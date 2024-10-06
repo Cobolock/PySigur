@@ -46,6 +46,17 @@ class SigurExceptionModel(SigurResponse):
 
 
 @dataclass
+class SigurOK(SigurResponse):
+    """
+    `SigurOK.data`:
+        `ok`: it's always "OK" in Sigur
+    """
+
+    regex: str = "(?P<ok>(OK))"
+    model: type = namedtuple("OK", "ok")
+
+
+@dataclass
 class ObjectInfoEmp(SigurResponse):
     """
     `ObjectInfoEmp.data`:
